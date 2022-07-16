@@ -34,3 +34,7 @@ coverage reports using [pycov](https://pytest-cov.readthedocs.io/en/latest/readm
 ```bash
 pytest --cov=myproj tests/
 ```
+
+### To Do
+- [ ] continuous integration, using pycov !
+- [ ] integ branch ?
