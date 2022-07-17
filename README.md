@@ -32,9 +32,12 @@ type       : XShortEnumField                     = (36864)
 ### pycov
 coverage reports using [pycov](https://pytest-cov.readthedocs.io/en/latest/readme.html)
 ```bash
-pytest --cov=myproj tests/
+pytest --cov=scanner tests/
 ```
 
 ### To Do
 - [ ] continuous integration, using pycov !
 - [ ] integ branch ?
+
+### random link (too lazy to search again online)
+- https://docs.python.org/3/library/exceptions.html
