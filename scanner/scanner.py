@@ -1,9 +1,16 @@
-from curses import keyname
 import pdb
 from scapy.all import sr1, srp,IP,ICMP,Ether
 
+
 class Ip:
     def __init__(self, ip_str, netmask_str) -> None:
+        
+        if not isinstance(ip_str, str) or not isinstance(netmask_str, str):
+            raise TypeError
+        
+        if len(ip_str.split('.')) != 4 or len(netmask_str.split('.')) != 4:
+            raise ValueError
+        
         self.ip_str = ip_str
         self.netmask_str = netmask_str
         self.is_up = False
@@ -21,7 +28,7 @@ class Ip:
 
     def __str__(self) -> str:
         return self.ip_str
-
+    
 class Network:
     def __init__(self, ip) -> None:
         self.ip = ip
