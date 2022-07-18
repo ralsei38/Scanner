@@ -22,4 +22,7 @@ def test_init_wrong_ip_type():
     with pytest.raises(TypeError):
         scanner.Ip(14, "255.255.255.0") 
         scanner.Ip([], "255.255.255.0") 
-        scanner.Ip({}, "255.255.255.0") 
+        scanner.Ip({}, "255.255.255.0")
+
+# def test_ping():
+#     assert(scanner.Network(scanner.Ip("192.168.1.0", "255.255.255.0")).ping(scanner.Ip("192.168.1.13", "255.255.255.0")))
