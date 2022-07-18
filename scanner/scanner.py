@@ -1,7 +1,6 @@
 import pdb
+import logging
 from scapy.all import sr1, srp,IP,ICMP,Ether
-
-
 class Ip:
     def __init__(self, ip_str, netmask_str) -> None:
         
@@ -30,16 +29,15 @@ class Ip:
         return self.ip_str
     
 class Network:
-    def __init__(self, ip) -> None:
+    def __init__(self, ip: Ip) -> None:
         self.ip = ip
-        # self.nb_host = self.get_nb_host()
     
-    def ping(self, ip: Ip) -> bool:
-        pckt = Ether()/IP(dst=str(ip))/ICMP(type=8, code=0)
-        pqt = sr1(pckt)
+    def ping(self, ip_str) -> bool:
+        pckt = Ether()/IP(dst=ip_str)/ICMP(type=8, code=0)
+        pqt = sr1(pckt ,timeout=0.5)
         return pqt
     
-    def get_nb_host_support(self) -> int:
+    def get_nb_max_host(self) -> int:
         """
             How much hosts can this ip range could welcome
         """
@@ -54,8 +52,18 @@ class Network:
 
 
     def ping_scan(self) -> list:
-        '''
-        255.255.255.0
-        1111 1111. 1111 1111. 1111 1111. 0000 0000
-        '''
+        for i in range(self.get_nb_max_host()):
+            ip_iter = self.ip
+            self.ping(str(ip_iter))
+            logging.debug(f"ping: {str(ip_iter)}")
+            ip_iter.next()
         pass
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    logging.debug("running scanner.py")
+    logging.debug("creating ip object")
+    ip = Ip("192.168.1.0", "255.255.255.0")
+    logging.debug("creating Network object")
+    network = Network(ip)
+    network.ping_scan()    
