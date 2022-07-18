@@ -13,12 +13,14 @@ apt-get install python3
 sudo apt-get install python3-venv
 python3 -m venv venv
 source ./venv/bin/activate
-pip install scapy
+pip install -r requirements.txt
 ```
 
+## Miscellaneous
+### scapy shell
 installing Scapy can be useful for testing / debugging
 ```bash
-sudo apt intall scapy
+sudo apt install scapy
 scapy
 >>> ls(Ether)
 "
@@ -27,3 +29,15 @@ src        : SourceMACField                      = (None)
 type       : XShortEnumField                     = (36864)
 "
 ```
+### pycov
+coverage reports using [pycov](https://pytest-cov.readthedocs.io/en/latest/readme.html)
+```bash
+pytest --cov=scanner tests/
+```
+
+### To Do
+- [ ] continuous integration, using pycov !
+- [ ] integ branch ?
+
+### random link (too lazy to search again online)
+- https://docs.python.org/3/library/exceptions.html
