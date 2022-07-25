@@ -25,12 +25,18 @@ def test_init_wrong_ip_type():
         scanner.Ip([], "255.255.255.0") 
         scanner.Ip({}, "255.255.255.0")
 
-# def test_ping():
-#     """
-#         cannot be tested using continous integration
-#     """
-#     assert(scanner.Ip("192.168.1.0", "255.255.255.0").ping() == False)
-#     assert(scanner.Ip("192.168.1.1", "255.255.255.0").ping() == True)
+def ping():
+    """
+        cannot be tested using continous integration
+    """
+    #manually tested
+    assert(scanner.Ip("192.168.1.0", "255.255.255.0").ping() == False)
+    assert(scanner.Ip("192.168.1.1", "255.255.255.0").ping() == True)
 
-def test_ping_scan():
+def ping_scan():
+    #manually tested
+    ip = scanner.Ip("192.168.1.0", "255.255.255.252")
+    network = scanner.Network(ip)
+    host_list = network.ping_scan(1)
+def tcp_scan():
     pass

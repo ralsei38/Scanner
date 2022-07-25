@@ -1,6 +1,9 @@
 import pdb
 import logging
-from scapy.all import sr1, srp,IP,ICMP,Ether
+import random
+import sys
+from scapy.all import sr1, srp,Ether,IP, ICMP, TCP
+
 class Ip:
     def __init__(self, ip_str, netmask_str) -> None:
         
@@ -13,7 +16,11 @@ class Ip:
         self.ip_str = ip_str
         self.netmask_str = netmask_str
         self.is_up = False
-    
+        self.os = None
+        self.name = None
+        self.lastly_scanned = None
+        self.open_ports = []
+
     def next(self) -> None:
         ip_arr = [int(part) for part in self.ip_str.split('.')]
         for i in reversed(range(len(ip_arr))):
@@ -24,18 +31,26 @@ class Ip:
                 ip_arr[i] = 0
                 continue
         self.ip_str = ".".join([str(part) for part in ip_arr])
+    
+    def ping(self, timeout=1) -> bool:
+        pkt = Ether()/IP(dst=self.ip_str)/ICMP(type=8, code=0)
+        result, _ = srp(pkt, timeout=timeout)
+        return len(result) == 1
+
+    def tcp_Syn_scan(self) -> None:
+        """
+        TCP SYN request on host, stores result in open_ports attribute
+        """
+        for i in range(49151):
+            if srp(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=i)):
+                self.open_ports.append(i)
 
     def __str__(self) -> str:
         return self.ip_str
-    
+
 class Network:
     def __init__(self, ip: Ip) -> None:
         self.ip = ip
-    
-    def ping(self, ip_str) -> bool:
-        pckt = Ether()/IP(dst=ip_str)/ICMP(type=8, code=0)
-        pqt = sr1(pckt ,timeout=0.5)
-        return pqt
     
     def get_nb_max_host(self) -> int:
         """
@@ -48,22 +63,21 @@ class Network:
                 n_free_bits += 1
             else:
                 break
-        return 2**n_free_bits-1 # last IP broadcast, real number is 2**nb_free_bits-2
+        return 2**n_free_bits - 1 # last IP broadcast, real number is 2**nb_free_bits-2
 
 
-    def ping_scan(self) -> list:
+    def ping_scan(self, timeout=1) -> list:
+        host_list = []
         for i in range(self.get_nb_max_host()):
             ip_iter = self.ip
-            self.ping(str(ip_iter))
-            logging.debug(f"ping: {str(ip_iter)}")
+            if ip_iter.ping(timeout):
+                host_list.append(str(ip_iter))
             ip_iter.next()
-        pass
+            print(str(ip_iter))
+        return host_list
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.DEBUG)
-    logging.debug("running scanner.py")
-    logging.debug("creating ip object")
-    ip = Ip("192.168.1.0", "255.255.255.0")
-    logging.debug("creating Network object")
+    ip = Ip("192.168.1.1", "255.255.255.0")
     network = Network(ip)
-    network.ping_scan()    
+    host_list = network.ping_scan(1)
+    print(host_list)
