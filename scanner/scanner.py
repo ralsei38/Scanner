@@ -1,9 +1,10 @@
 import pdb
-import logging
 import random
 import sys
-from scapy.all import sr1, srp,Ether,IP, ICMP, TCP
-
+import threading
+from time import sleep
+import logging
+from scapy.all import *
 class Ip:
     def __init__(self, ip_str, netmask_str) -> None:
         
@@ -21,7 +22,7 @@ class Ip:
         self.lastly_scanned = None
         self.open_ports = []
 
-    def next(self) -> None:
+    def next(self) -> str:
         ip_arr = [int(part) for part in self.ip_str.split('.')]
         for i in reversed(range(len(ip_arr))):
             if ip_arr[i] <= 254:
@@ -31,11 +32,13 @@ class Ip:
                 ip_arr[i] = 0
                 continue
         self.ip_str = ".".join([str(part) for part in ip_arr])
+        return self.ip_str
     
     def ping(self, timeout=1) -> bool:
-        pkt = Ether()/IP(dst=self.ip_str)/ICMP(type=8, code=0)
-        result, _ = srp(pkt, timeout=timeout)
-        return len(result) == 1
+        pkt = IP(dst=self.ip_str)/ICMP(type=8, code=0)
+        result = srp(pkt, timeout=5, verbose=False)
+        print(result)
+        return result != None
 
     def tcp_Syn_scan(self) -> None:
         """
@@ -51,7 +54,7 @@ class Ip:
 class Network:
     def __init__(self, ip: Ip) -> None:
         self.ip = ip
-    
+        self.host_list = []
     def get_nb_max_host(self) -> int:
         """
             How much hosts can this ip range could welcome
@@ -68,16 +71,25 @@ class Network:
 
     def ping_scan(self, timeout=1) -> list:
         host_list = []
-        for i in range(self.get_nb_max_host()):
-            ip_iter = self.ip
-            if ip_iter.ping(timeout):
-                host_list.append(str(ip_iter))
-            ip_iter.next()
-            print(str(ip_iter))
+        threads = []
+        ip_iter = self.ip
+        for i in range(0,self.get_nb_max_host()):
+            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str),)).start())
+            # if ip_iter.ping(timeout):
+            #     host_list.append(str(ip_iter))
+        for t in threads:
+            t.join()
         return host_list
+    
+    def __ping(self, ip_iter):
+        if ip_iter.ping(timeout=1):
+            self.host_list.append(str(ip_iter))
 
 if __name__ == "__main__":
     ip = Ip("192.168.1.1", "255.255.255.0")
     network = Network(ip)
     host_list = network.ping_scan(1)
-    print(host_list)
+    # host_list = network.ping_scan(0.5)
+    print(network.host_list)
+    print(network.host_list)
+    print(network.host_list)
