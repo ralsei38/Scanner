@@ -36,9 +36,8 @@ class Ip:
     
     def ping(self, timeout=1) -> bool:
         pkt = IP(dst=self.ip_str)/ICMP(type=8, code=0)
-        result = srp(pkt, timeout=5, verbose=False)
-        print(result)
-        return result != None
+        result, _ = sr(pkt, timeout=1, verbose=False)
+        return len(result)
 
     def tcp_Syn_scan(self) -> None:
         """
@@ -73,23 +72,21 @@ class Network:
         host_list = []
         threads = []
         ip_iter = self.ip
-        for i in range(0,self.get_nb_max_host()):
-            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str),)).start())
-            # if ip_iter.ping(timeout):
-            #     host_list.append(str(ip_iter))
+        for i in range(0,self.get_nb_max_host()-2):
+            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str),)))
+        for t in threads:
+            t.start()
         for t in threads:
             t.join()
-        return host_list
+        return self.host_list
     
     def __ping(self, ip_iter):
         if ip_iter.ping(timeout=1):
+            print(ip_iter, "YEA")
             self.host_list.append(str(ip_iter))
 
 if __name__ == "__main__":
     ip = Ip("192.168.1.1", "255.255.255.0")
     network = Network(ip)
     host_list = network.ping_scan(1)
-    # host_list = network.ping_scan(0.5)
-    print(network.host_list)
-    print(network.host_list)
-    print(network.host_list)
+    print(host_list)
