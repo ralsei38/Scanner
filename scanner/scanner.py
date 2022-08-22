@@ -7,13 +7,13 @@ import logging
 from scapy.all import *
 class Ip:
     def __init__(self, ip_str, netmask_str) -> None:
-        
+
         if not isinstance(ip_str, str) or not isinstance(netmask_str, str):
             raise TypeError
-        
+
         if len(ip_str.split('.')) != 4 or len(netmask_str.split('.')) != 4:
             raise ValueError
-        
+
         self.ip_str = ip_str
         self.netmask_str = netmask_str
         self.is_up = False
@@ -33,22 +33,35 @@ class Ip:
                 continue
         self.ip_str = ".".join([str(part) for part in ip_arr])
         return self.ip_str
-    
+
     def ping(self, timeout=1) -> bool:
         pkt = IP(dst=self.ip_str)/ICMP(type=8, code=0)
-        result, _ = sr(pkt, timeout=1, verbose=False)
+        result, _ = sr(pkt, timeout=timeout, verbose=False)
         return len(result)
 
-    def tcp_Syn_scan(self) -> None:
+    def tcp_scan(self, scan_type, timeout=1) -> list:
         """
-        TCP SYN request on host, stores result in open_ports attribute
+        TCP FULL SCAN : returns list of open-ports
+        implemented scan types are:
+        - full
+        - half
         """
-        for i in range(49151):
-            if srp(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=i)):
-                self.open_ports.append(i)
+        if "full" in scan_type.lower():
+            for i in range(70, 80):
+                tcp_conn = srp(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=i), timeout=timeout)
+                if tcp_conn is not None:
+                    send(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=i))
+                    self.open_ports.append(i)
+        elif 0:
+            pass
+        else:
+            raise NotImplementedError(f"scan_type : '{scan_type}' is not implemented, see '{self.tcp_scan.__name__}' docstring")
+
+        return self.open_ports
 
     def __str__(self) -> str:
         return self.ip_str
+
 
 class Network:
     def __init__(self, ip: Ip) -> None:
