@@ -95,7 +95,6 @@ class Network:
     
     def __ping(self, ip_iter):
         if ip_iter.ping(timeout=1):
-            print(ip_iter, "YEA")
             self.host_list.append(str(ip_iter))
 
 if __name__ == "__main__":
