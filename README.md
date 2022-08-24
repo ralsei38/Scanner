@@ -1,5 +1,5 @@
 # Scanner
-Python scanner built upon the scapy library.
+Python network scanner built upon the Scapy library.
 
 ## setup
 ```bash
