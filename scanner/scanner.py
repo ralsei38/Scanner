@@ -43,6 +43,26 @@ class Ip:
         result, _ = sr(pkt, timeout=timeout, verbose=False)
         return len(result)
 
+    def tcp_single_probe(self, port, scan_type="full", pkt=None, timeout=1) -> bool:
+        if pkt is not None:
+            raise NotImplementedError(f"Not processing the pkt parameter for now.")
+        
+        pkt = IP(dst=self.ip_str)/TCP(flags='S', dport=port)
+        result, _ = sr(pkt, timeout=2, verbose=False)
+        if "full" in scan_type:
+            if len(result):
+                print(len(result))
+                print(result)
+                logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
+                logging.debug(f"sending TCP ACK attempt on {self.ip_str} port {port}")
+                send(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=port), verbose=False) #TODO: make sure that actually sends ACK, (manually if necessary)
+                self.open_ports.append(port)
+            else:
+                logging.debug(f"TCP SYN attempt => FAILED => on {self.ip_str} port {port}")
+        elif scan_type != "full":
+            raise NotImplementedError(f"{scan_type} is not implemented yet")
+        return len(result)
+    
     def tcp_scan(self, scan_type, timeout=1) -> list:
         """
         TCP FULL SCAN : returns list of open-ports
@@ -50,18 +70,13 @@ class Ip:
         - full
         - half
         """
-        if "full" in scan_type.lower():
-            for i in range(79, 1023):
-            # for i in range(79, 81):
-                tcp_conn = sr(IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=i), timeout=1, verbose=False)
-                logging.debug(f"TCP SYN attempt on {self.ip_str} port {i}")
-                if len(tcp_conn[0]):
-                    logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {i}")
-                    logging.debug(f"sending TCP ACK on {self.ip_str} port {i}")
-                    send(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=i), verbose=False) #TODO: make sure that actually sends ACK, (manually if necessary)
-                    self.open_ports.append(i)
-        else:
-            raise NotImplementedError(f"scan_type : '{scan_type}' is not implemented, see '{self.tcp_scan.__name__}' docstring")
+        threads = []
+        for i in range(10, 23):
+            threads.append(threading.Thread(target=self.tcp_single_probe, args=(i, scan_type), kwargs={"timeout" : 2}))
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
         return self.open_ports
 
     def __str__(self) -> str:
@@ -103,8 +118,9 @@ class Network:
             self.host_list.append(str(ip_iter))
 
 if __name__ == "__main__":
-    ip = Ip("192.168.1.1", "255.255.255.0")
+    ip = Ip("10.132.65.106", "255.255.255.0")
     network = Network(ip)
     # host_list = network.ping_scan(1)
     # print(host_list)
     pckt = ip.tcp_scan("full")
+    print(pckt)

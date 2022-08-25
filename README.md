@@ -1,5 +1,5 @@
 # Scanner
-Python scanner built upon the scapy library.
+Python network scanner built upon the Scapy library.
 
 ## setup
 ```bash
@@ -36,8 +36,4 @@ pytest --cov=scanner tests/
 ```
 
 ### To Do
-- [ ] continuous integration, using pycov !
-- [ ] integ branch ?
-
-### random link (too lazy to search again online)
-- https://docs.python.org/3/library/exceptions.html
+- [x] continuous integration, using pycov !
