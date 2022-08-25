@@ -57,7 +57,7 @@ class Ip:
                 logging.debug(f"TCP SYN attempt on {self.ip_str} port {i}")
                 if len(tcp_conn[0]):
                     logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {i}")
-                    logging.debug(f"sending TCP ACK attempt on {self.ip_str} port {i}")
+                    logging.debug(f"sending TCP ACK on {self.ip_str} port {i}")
                     send(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=i), verbose=False) #TODO: make sure that actually sends ACK, (manually if necessary)
                     self.open_ports.append(i)
         else:
