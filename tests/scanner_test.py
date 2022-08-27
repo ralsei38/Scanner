@@ -25,7 +25,7 @@ def test_init_wrong_ip_type():
         scanner.Ip([], "255.255.255.0") 
         scanner.Ip({}, "255.255.255.0")
 
-def ping():
+def ping(): #cannot be tested using Continuous Integration
     """
         cannot be tested using continous integration
     """
@@ -35,8 +35,11 @@ def ping():
 
 def ping_scan():
     #manually tested
-    ip = scanner.Ip("192.168.1.0", "255.255.255.252")
+    ip = scanner.Ip("127.0.0.1", "255.255.255.252")
     network = scanner.Network(ip)
     host_list = network.ping_scan(1)
-def tcp_scan():
-    pass
+
+def test_tcp_scan(): #cannot be tested using Continuous Integration
+    with pytest.raises(NotImplementedError):
+        ip = scanner.Ip("127.0.0.1", "255.255.255.0")
+        ip.tcp_scan("half", 5)
