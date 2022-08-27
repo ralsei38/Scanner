@@ -1,7 +1,7 @@
 # ScapyScanner
 
 Python network scanner built upon the Scapy library.
-![ScapyScan.png](ScapyScan.png)
+![ScapyScan.png](ScapyScanner.png)
 
 ## setup
 ```bash
