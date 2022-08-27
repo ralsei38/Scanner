@@ -7,7 +7,7 @@ class View():
     
     def welcome(self):
         os.system('cls||clear')
-        print(self.f.renderText('ScapyScan'))
+        print(self.f.renderText('ScapyScanner'))
     
     def list_focus(self, focus: dict) -> int:
         user_focus = None
