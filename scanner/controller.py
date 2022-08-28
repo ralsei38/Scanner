@@ -6,8 +6,18 @@ view.welcome()
 key_focus = None
 key_action = None
 
-key_focus = int(view.list_focus(FOCUS_LIST))
-key_action = int(view.list_actions(ACTION_LIST))
+while True:
+    try:
+        key_focus = int(view.list_focus(FOCUS_LIST))
+        if key_focus not in FOCUS_LIST:
+            continue
+        key_action = int(view.list_actions(ACTION_LIST))
+        if key_action not in ACTION_LIST:
+            continue
+        break
+    except:
+        continue
+
 ip_str, netmask_str = view.ip_get()
 
 if FOCUS_LIST[key_focus] == "ip scan":
