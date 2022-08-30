@@ -2,44 +2,62 @@ from array import array
 import os
 import sys
 sys.path.append('scanner')
-import scanner
+import model, controller, view
 import pytest
+import logging
+
 
 
 # TEST IP CLASS
 def test_init_wrong_ip_format():
     with pytest.raises(ValueError):
-        scanner.Ip("192.168.1.0.0", "255.255.255.0")
+        model.Ip("192.168.1.0.0", "255.255.255.0")
     with pytest.raises(ValueError):
-        scanner.Ip("192.168.1.0", "255.255.255.0.0")
+        model.Ip("192.168.1.0", "255.255.255.0.0")
     with pytest.raises(ValueError):
-        scanner.Ip("192..168.1.0", "255.255.255..0")
+        model.Ip("192..168.1.0", "255.255.255..0")
     with pytest.raises(ValueError):
-        scanner.Ip("1some4", "255.255.255.0")
+        model.Ip("1some4", "255.255.255.0")
     with pytest.raises(ValueError):
-        scanner.Ip("a.a.a.b", "255.255.255..0")
+        model.Ip("a.a.a.b", "255.255.255..0")
 
 def test_init_wrong_ip_type():
     with pytest.raises(TypeError):
-        scanner.Ip(14, "255.255.255.0") 
-        scanner.Ip([], "255.255.255.0") 
-        scanner.Ip({}, "255.255.255.0")
+        model.Ip(14, "255.255.255.0") 
+        model.Ip([], "255.255.255.0") 
+        model.Ip({}, "255.255.255.0")
 
-def ping(): #cannot be tested using Continuous Integration
+def test_get_nb_max_host():
+    net1 = model.Network(model.Ip("192.168.1.0", "255.255.255.0"))
+    net2 = model.Network(model.Ip("192.168.1.0", "255.255.255.128"))
+    assert(net1.get_nb_max_host() == (2**8-2))
+    assert(net2.get_nb_max_host() == (2**7-2))
+
+def test_ping(): #cannot be tested using Continuous Integration
     """
         cannot be tested using continous integration
     """
     #manually tested
-    assert(scanner.Ip("192.168.1.0", "255.255.255.0").ping() == False)
-    assert(scanner.Ip("192.168.1.1", "255.255.255.0").ping() == True)
+    assert(model.Ip("127.0.0.1", "255.255.255.0").ping_scan() == False)
+    assert(model.Ip("192.168.1.253", "255.255.255.0").ping_scan() == False)
+    # assert(model.Ip("127.0.0.1", "255.255.255.0").ping_scan() == True) CI cannot really ping itself sadly
 
-def ping_scan():
-    #manually tested
-    ip = scanner.Ip("127.0.0.1", "255.255.255.252")
-    network = scanner.Network(ip)
+def test_ping_scan():
+    ip = model.Ip("127.0.0.1", "255.255.255.252")
+    network = model.Network(ip)
     host_list = network.ping_scan(1)
+    assert(isinstance(host_list, list))
 
 def test_tcp_scan(): #cannot be tested using Continuous Integration
+    ip = model.Ip("192.168.1.1", "255.255.255.0")
     with pytest.raises(NotImplementedError):
-        ip = scanner.Ip("127.0.0.1", "255.255.255.0")
-        ip.tcp_scan("half", 5)
+        print(ip.tcp_scan("other", 0.1))
+        print(ip.tcp_scan("kek", 0.1))
+        print(ip.tcp_scan("ful", 0.1))
+    print(ip.tcp_scan("half", 0.1))
+    print(ip.tcp_scan("full", 0.1))
+
+def test_udp_scan(): #cannot be tested using Continuous Integration
+    ip = model.Ip("192.168.1.1", "255.255.255.0")
+    port_list = ip.udp_scan(1)
+    assert(isinstance(port_list, list))
