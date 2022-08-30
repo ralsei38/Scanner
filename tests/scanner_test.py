@@ -54,10 +54,8 @@ def test_tcp_scan(): #cannot be tested using Continuous Integration
         print(ip.tcp_scan("other", 0.1))
         print(ip.tcp_scan("kek", 0.1))
         print(ip.tcp_scan("ful", 0.1))
-    print(ip.tcp_scan("half", 0.1))
-    print(ip.tcp_scan("full", 0.1))
+    assert(isinstance(ip.tcp_scan("full", 0.1), list))
 
 def test_udp_scan(): #cannot be tested using Continuous Integration
     ip = model.Ip("192.168.1.1", "255.255.255.0")
-    port_list = ip.udp_scan(1)
-    assert(isinstance(port_list, list))
+    assert(isinstance(ip.udp_scan(1), list))
