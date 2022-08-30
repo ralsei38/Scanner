@@ -16,7 +16,9 @@ FOCUS_LIST = {
 
 ACTION_LIST = {
     1 : 'ping scan',
-    2 : 'tcp scan: full',
+    2 : 'TCP scan: full',
+    3 : 'TCP scan: half',
+    4 : 'UDP scan',
 }
 
 
@@ -51,18 +53,46 @@ class Ip:
         Procedure appending a port to a list if responding to TCP probe
         This method is called by the "tcp_scan" method.
         """
-        pkt = IP(dst=self.ip_str)/TCP(flags='S', dport=port)
-        result, _ = sr(pkt, timeout=2, verbose=False)
-        if "full" in scan_type:
-            if len(result):
+        pkt_syn = IP(dst=self.ip_str)/TCP(flags='S', dport=port, seq=1000)
+        pkt_conn_start, _ = sr(pkt_syn, timeout=2, verbose=False)
+
+        if "full" in scan_type: #TCP full scan
+            if len(pkt_conn_start):
                 open_ports.append(port)
                 logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
                 logging.debug(f"sending TCP ACK attempt on {self.ip_str} port {port}")
-                send(Ether()/IP(dst=self.ip_str)/TCP(sport=random.randrange(49152, 64738), dport=port), verbose=False) #TODO: make sure that actually sends ACK, (manually if necessary)
+                pkt_conn_end = IP(dst=self.ip_str)/TCP(flags='RA', dport=port, seq=pkt_syn.ack, ack=pkt_syn.seq+1)
+                send(pkt_conn_end, verbose=False)
+
+        elif "half" in scan_type: #TCP half-open scan
+            if len(pkt_conn_start):
+                open_ports.append(port)
+                logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
         else:
             raise NotImplementedError(f"{scan_type} is not implemented yet")
-        
-    
+
+    def __udp_port_scan(self, port, open_ports, timeout=5) -> None:
+        """
+        Procedure appending a port to a list if responding to TCP probe
+        This method is called by the "tcp_scan" method.
+        """
+        pkt = IP(dst=self.ip_str)/UDP(dport=port)
+        response, _ = sr(pkt, timeout=timeout, verbose=False)
+        if len(response):
+            logging.debug(f"UDP response => OK {self.ip_str} port {port}")
+
+    def udp_scan(self, timeout=5) -> list:
+        threads = list()
+        open_ports = list()
+
+        for i in range(1, 700):
+            threads.append(threading.Thread(target=self.__udp_port_scan, args=(i, open_ports, timeout)))
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        return open_ports
+
     def tcp_scan(self, scan_type="full", timeout=5) -> list:
         """
         TCP FULL SCAN : returns list of open-ports
@@ -72,7 +102,7 @@ class Ip:
         """
         threads = []
         open_ports = []
-        for i in range(50, 200):
+        for i in range(1, 1024):
             threads.append(threading.Thread(target=self.__tcp_port_scan, args=(i, open_ports, scan_type, timeout)))
         for t in threads:
             t.start()
@@ -111,18 +141,20 @@ class Network:
         ip_iter = self.ip
         
         for i in range(0,self.get_nb_max_host()-2):
-            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str), host_list)))
+            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str), host_list, timeout)))
         for t in threads:
             t.start()
         for t in threads:
             t.join()
         return host_list
 
-    def __ping(self, ip_iter, host_list) -> None:
+    def __ping(self, ip_iter, host_list, timeout=1) -> None:
         """
         Procedure appending a host to a list if responding to ICMP probe
         """
-        if ip_iter.ping_scan(timeout=1):
+        pkt = ip_iter.ping_scan(timeout=timeout)
+        print(pkt)
+        if pkt:
             host_list.append(str(ip_iter))
 
     def tcp_scan(self, scan_type="full", timeout=5) -> list:
