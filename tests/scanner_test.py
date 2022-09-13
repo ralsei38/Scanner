@@ -38,18 +38,19 @@ def test_ping(): #cannot be tested using Continuous Integration
         cannot be tested using continous integration
     """
     #manually tested
-    assert(model.Ip("127.0.0.1", "255.255.255.0").ping_scan() == False)
-    assert(model.Ip("192.168.1.253", "255.255.255.0").ping_scan() == False)
-    # assert(model.Ip("127.0.0.1", "255.255.255.0").ping_scan() == True) CI cannot really ping itself sadly
+    assert(model.Ip("10.8.0.1", "255.255.255.0").ping_scan() == True)
+    assert(model.Ip("10.8.0.102", "255.255.255.0").ping_scan() == True)
+    assert(model.Ip("10.8.0.103", "255.255.255.0").ping_scan() == False)
+    assert(model.Ip("5.196.92.11", "255.255.255.0").ping_scan() == True)
 
 def test_ping_scan():
-    ip = model.Ip("127.0.0.1", "255.255.255.252")
+    ip = model.Ip("10.8.0.1", "255.255.255.0")
     network = model.Network(ip)
     host_list = network.ping_scan(1)
     assert(isinstance(host_list, list))
 
 def test_tcp_scan(): #cannot be tested using Continuous Integration
-    ip = model.Ip("192.168.1.1", "255.255.255.0")
+    ip = model.Ip("10.8.0.1", "255.255.255.0")
     with pytest.raises(NotImplementedError):
         print(ip.tcp_scan("other", 0.1))
         print(ip.tcp_scan("kek", 0.1))
