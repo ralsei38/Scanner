@@ -1,5 +1,6 @@
 from pyfiglet import Figlet
 import os
+from model import Ip, Network, ACTION_LIST, FOCUS_LIST
 
 class View():
     def __init__(self):
@@ -29,4 +30,18 @@ class View():
         ip_str = input("ip: ")
         netmask_str = input("netmask: ")
         return (ip_str, netmask_str)
-        
+    
+    def summary(self, entity) -> None:
+        if isinstance(entity, Network):
+            print(f"address: {entity}")
+            print(f"hosts: {[str(host) for host in entity.host_list]}")
+            print("HOSTS:\n")
+            for host in entity.host_list:
+                print(f"host: {host}")
+                print(f"up: {host.is_up[0]}, scan timestamp: {host.is_up[1]}")
+        elif isinstance(entity, Ip):
+            print(f"address: {entity}")
+            print(f"is up: {entity.is_up[0]}")
+            print(f"scan timestamp: {entity.is_up[1]}")
+        else:
+            raise TypeError

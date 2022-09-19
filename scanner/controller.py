@@ -37,12 +37,16 @@ if __name__ == "__main__":
     else:
         print("unexpected focus")
 
-    # Ugly for now...
-    if ACTION_LIST[key_action] == "ping scan":
-        print(entity.ping_scan(timeout=2))
+    if ACTION_LIST[key_action] == "PING scan":
+        entity.ping_scan(timeout=2)
+    
     if ACTION_LIST[key_action] == "TCP scan: full":
-        print(entity.tcp_scan("full", timeout=2))
+        entity.tcp_scan("full", timeout=2)
+    
     if ACTION_LIST[key_action] == "TCP scan: half":
-        print(entity.tcp_scan("half", timeout=2))
+        entity.tcp_scan("half", timeout=2)
+    
     if ACTION_LIST[key_action] == "UDP scan":
-        print(entity.udp_scan(timeout=1))
+        entity.udp_scan(timeout=2)
+
+    view.summary(entity)
