@@ -1,11 +1,9 @@
 import pdb
-import random
 import sys
-import threading
+from threading import Thread, Lock
 from time import sleep
 import logging
 from scapy.all import *
-
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -30,8 +28,25 @@ class Ip:
         
         self.ip_str = ip_str
         self.netmask_str = netmask_str
+        self.ports = {
+            # key : value <=> port_number : state
+            # state {=> -1, 0, 1
+        }
+        self.init_ports()
+    
+    def init_ports(self) -> None:
+        for port in range(0, 1025):
+            """
+            ports is a dictionnary
+            key : value <=> port_number : port_state
+            port_state can be either -1 (unscanned), 0 (closed) and 1 (opened)
+            """
+            self.ports[str(port)] = -1
 
     def next(self) -> str:
+        """
+        affects the next local IP to the ip_str variable
+        """
         ip_arr = [int(part) for part in self.ip_str.split('.')]
         for i in reversed(range(len(ip_arr))):
             if ip_arr[i] <= 254:
@@ -44,34 +59,47 @@ class Ip:
         return self.ip_str #used for threading
 
     def ping_scan(self, timeout=1) -> bool:
+        """
+        sending an ICMP packet, spoofing will soon be implemented
+        """
         pkt = IP(dst=self.ip_str)/ICMP(type=8, code=0)
         return sr1(pkt, timeout=timeout, verbose=False) is not None
 
 
-    def __udp_port_scan(self, port, open_ports, timeout=5) -> None:
+    def __udp_port_scan(self, current_ports, timeout=5) -> None:
         """
         Procedure appending a port to a list if responding to TCP probe
         This method is called by the "tcp_scan" method.
         """
-        pkt = IP(dst=self.ip_str)/UDP(dport=port)
-        response, _ = sr(pkt, timeout=timeout, verbose=False)
-        if len(response):
-            logging.debug(f"UDP response => OK {self.ip_str} port {port}")
-            open_ports.append(port)
-    
-    def udp_scan(self, timeout=5) -> list:
-        threads = list()
-        open_ports = list()
+        while len(current_ports) > 0:
+            mutex = Lock()
+            try:
+                mutex.acquire()
+                port, _ = current_ports.popitem()
+                port = int(port)
+            finally:
+                mutex.release()
+            pkt = IP(dst=self.ip_str)/UDP(dport=port)
+            response, _ = sr(pkt, timeout=timeout, verbose=False)
+            if len(response):
+                logging.debug(f"UDP response => OK {self.ip_str} port {port}")
+                self.ports[str(port)] = 1
+            else:
+                logging.debug(f"UDP response => FAIL {self.ip_str} port {port}")
+                self.ports[str(port)] = 0
 
-        for i in range(1, 1024):
-            threads.append(threading.Thread(target=self.__udp_port_scan, args=(i, open_ports, timeout)))
+    def udp_scan(self, timeout=5) -> None:
+        threads = list()
+        self.init_ports()
+        current_ports = self.ports.copy()
+        for i in range(1, 400):
+            threads.append(threading.Thread(target=self.__udp_port_scan, args=(current_ports, timeout)))
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        return open_ports
 
-    def tcp_scan(self, scan_type="full", timeout=1) -> list:
+    def tcp_scan(self, scan_type="full", timeout=1) -> None:
         """
         TCP FULL SCAN : returns list of open-ports
         This method calls the "__tcp_port_scan" method
@@ -79,41 +107,61 @@ class Ip:
         - full
         """
         scan_type_list = ["full", "half"]
+        self.init_ports()
+        current_ports = self.ports.copy()
         if scan_type not in scan_type_list:
             raise NotImplementedError
+        
         threads = []
-        open_ports = []
-        for i in range(1, 1024):
-            threads.append(threading.Thread(target=self.__tcp_port_scan, args=(i, open_ports, scan_type, timeout)))
+        for i in range(700):
+            threads.append(threading.Thread(target=self.__tcp_port_scan, args=(current_ports, scan_type, 1.5)))
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        return open_ports
-    
-    def __tcp_port_scan(self, port, open_ports, scan_type="full", timeout=1) -> None:
+
+    def __tcp_port_scan(self, current_ports: dict, scan_type="full", timeout=1) -> None:
         """
         Procedure appending a port to a list if responding to TCP probe
         This method is called by the "tcp_scan" method.
         """
-        pkt_syn = IP(dst=self.ip_str)/TCP(flags='S', dport=port, seq=1000)
-        pkt_conn_start, _ = sr(pkt_syn, timeout=timeout, verbose=False)
+        while len(current_ports) > 0:
+            
+            #picking a port from the port list
+            mutex = Lock()
+            mutex.acquire()
+            port = ""
+            try:
+                port, _ = current_ports.popitem() #whyyyy
+                port = int(port)
+            finally:
+                mutex.release()
+            #scanning it
+            pkt_syn = IP(dst=self.ip_str)/TCP(flags='S', dport=port, seq=1000)
+            pkt_conn_start, _ = sr(pkt_syn, timeout=timeout, verbose=False)
 
-        if "full" in scan_type: #TCP full scan
-            if len(pkt_conn_start):
-                open_ports.append(port)
-                logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
-                logging.debug(f"sending TCP ACK attempt on {self.ip_str} port {port}")
-                pkt_conn_end = IP(dst=self.ip_str)/TCP(flags='RA', dport=port, seq=pkt_syn.ack, ack=pkt_syn.seq+1)
-                send(pkt_conn_end, verbose=False)
+            #Excuse the mess...
+            if "full" in scan_type: #TCP full scan
+                if len(pkt_conn_start):
+                    self.ports[str(port)] = 1
+                    logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
+                    logging.debug(f"sending TCP ACK attempt on {self.ip_str} port {port}")
+                    pkt_conn_end = IP(dst=self.ip_str)/TCP(flags='RA', dport=port, seq=pkt_syn.ack, ack=pkt_syn.seq+1)
+                    send(pkt_conn_end, verbose=False)
+                else:
+                    self.ports[str(port)] = 0
+                    logging.debug(f"TCP SYN attempt => FAILED => on {self.ip_str} port {port}")
 
-        elif "half" in scan_type: #TCP half-open scan
-            if len(pkt_conn_start):
-                open_ports.append(port)
-                logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
-        else:
-            raise NotImplementedError(f"{scan_type} is not implemented yet")
-
+            elif "half" in scan_type: #TCP half-open scan
+                if len(pkt_conn_start):
+                    self.ports[str(port)] = 1
+                    logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
+                else:
+                    logging.debug(f"TCP SYN attempt => FAILD => on {self.ip_str} port {port}")
+                    self.ports[str(port)] = 0
+            else:
+                self.ports[str(port)] = -1
+                raise NotImplementedError(f"{scan_type} is not implemented yet")
     def __str__(self) -> str:
         return self.ip_str
 
