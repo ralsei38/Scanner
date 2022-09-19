@@ -33,6 +33,7 @@ class Ip:
             # state {=> -1, 0, 1
         }
         self.init_ports()
+        self.is_up = (False, str(datetime.now()).split(' ')[-1])
     
     def init_ports(self) -> None:
         for port in range(0, 1025):
@@ -58,13 +59,16 @@ class Ip:
         self.ip_str = ".".join([str(part) for part in ip_arr])
         return self.ip_str #used for threading
 
-    def ping_scan(self, timeout=1) -> bool:
+    def ping_scan(self, timeout=1) -> None:
         """
         sending an ICMP packet, spoofing will soon be implemented
         """
         pkt = IP(dst=self.ip_str)/ICMP(type=8, code=0)
-        return sr1(pkt, timeout=timeout, verbose=False) is not None
-
+        response = sr1(pkt, timeout=timeout, verbose=False)
+        if response is not None:
+            self.is_up = True, str(datetime.now()).split(' ')[-1]
+        else:
+            self.is_up = False, str(datetime.now()).split(' ')[-1]
 
     def __udp_port_scan(self, current_ports, timeout=5) -> None:
         """
@@ -132,7 +136,7 @@ class Ip:
             mutex.acquire()
             port = ""
             try:
-                port, _ = current_ports.popitem() #whyyyy
+                port, _ = current_ports.popitem()
                 port = int(port)
             finally:
                 mutex.release()
@@ -185,28 +189,53 @@ class Network:
                 break
         return 2 ** n_free_bits - 2 # last IP broadcast, real number is 2 ** nb_free_bits - 2 
 
-    def ping_scan(self, timeout=1) -> list:
-        host_list = []
+    def ping_scan(self, timeout=2) -> None:
         threads = []
         open_ports = []
         ip_iter = self.ip
-        
+        self.host_list = []
         for i in range(0,self.get_nb_max_host()-2):
-            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str), host_list, timeout)))
+            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str), timeout)))
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-        return host_list
 
-    def __ping(self, ip_iter, host_list, timeout=1) -> None:
+    def __ping(self, ip_iter, timeout=1) -> None:
         """
         Procedure appending a host to a list if responding to ICMP probe
         """
-        pkt = ip_iter.ping_scan(timeout=timeout)
-        print(pkt)
-        if pkt:
-            host_list.append(str(ip_iter))
+        ip_iter.ping_scan(timeout=timeout)
+        if ip_iter.is_up[0]:
+            self.host_list.append(ip_iter)
 
-    def tcp_scan(self, scan_type="full", timeout=1) -> list:
-        raise NotImplementedError("network tcp scan not implemented yet !")
+    def tcp_scan(self, scan_type="full", timeout=1) -> None:
+        threads = []
+        self.host_list = []
+        self.ping_scan()
+        host_list = self.host_list.copy()
+        print(host_list)
+        for i in range(2):
+            threads.append(threading.Thread(target=self.__tcp_scan, args=(host_list, scan_type, timeout)))
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+    def __tcp_scan(self, host_list, scan_type="full", timeout=1) -> None:
+        while len(host_list) > 0:
+            mutex = Lock()
+            try:
+                mutex.acquire()
+                ip = host_list.pop()
+            finally:
+                mutex.release()
+
+            ip.tcp_scan(scan_type)
+            self.host_list.append(ip)
+    
+    def udp_scan(self, scan_type="full", timeout=1) -> list:
+            raise NotImplementedError("network tcp scan not implemented yet !")
+    
+    def __str__(self) -> str:
+        return str(self.ip)
