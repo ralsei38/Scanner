@@ -92,7 +92,7 @@ class Ip:
                 logging.debug(f"UDP response => FAIL {self.ip_str} port {port}")
                 self.ports[str(port)] = 0
 
-    def udp_scan(self, timeout=5) -> None:
+    def udp_scan(self, timeout=1) -> None:
         threads = list()
         self.init_ports()
         current_ports = self.ports.copy()

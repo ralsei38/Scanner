@@ -33,30 +33,31 @@ def test_get_nb_max_host():
     assert(net1.get_nb_max_host() == (2**8-2))
     assert(net2.get_nb_max_host() == (2**7-2))
 
-def test_ping(): #cannot be tested using Continuous Integration
-    """
-        cannot be tested using continous integration
-    """
-    #manually tested
-    assert(model.Ip("10.8.0.1", "255.255.255.0").ping_scan() == True)
-    assert(model.Ip("10.8.0.102", "255.255.255.0").ping_scan() == True)
-    assert(model.Ip("10.8.0.103", "255.255.255.0").ping_scan() == False)
-    assert(model.Ip("5.196.92.11", "255.255.255.0").ping_scan() == True)
+def test_ping():
+    ip1 = model.Ip("10.8.0.1", "255.255.255.0")
+    ip2 = model.Ip("10.8.0.102", "255.255.255.0")
+    ip3 = model.Ip("10.8.0.103", "255.255.255.0")
+    ip4 = model.Ip("5.196.92.11", "255.255.255.0")
+    assert(ip1.is_up[0] == True)
+    assert(ip2.is_up[0] == True)
+    assert(ip3.is_up[0] == False)
+    assert(ip4.is_up[0] == False)
 
 def test_ping_scan():
     ip = model.Ip("10.8.0.1", "255.255.255.0")
     network = model.Network(ip)
-    host_list = network.ping_scan(1)
-    assert(len(host_list.host_list > 0))
+    network.ping_scan(1)
+    assert(len(network.host_list) > 0)
 
-def test_tcp_scan(): #cannot be tested using Continuous Integration
+def test_tcp_scan():
     ip = model.Ip("10.8.0.1", "255.255.255.0")
     with pytest.raises(NotImplementedError):
         print(ip.tcp_scan("other", 0.1))
         print(ip.tcp_scan("kek", 0.1))
         print(ip.tcp_scan("ful", 0.1))
-    assert(len(host_list.host_list > 0))
+    assert(len(ip.ports) > 0)
 
-def test_udp_scan(): #cannot be tested using Continuous Integration
-    ip = model.Ip("192.168.1.1", "255.255.255.0")
-    assert(len(host_list.host_list > 0))
+def test_udp_scan():
+    ip = model.Ip("10.8.0.1", "255.255.255.0")
+    ip.udp_scan()
+    assert(len(ip.ports) > 0)
