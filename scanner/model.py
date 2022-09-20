@@ -208,11 +208,12 @@ class Network:
         mutex = Lock()
         try:
             mutex.acquire()
-            ip_iter[0].next()
+            current_ip = ip_iter[-1].copy().next()
+            ip_iter.append(current_ip)
         finally:
             mutex.release()
-        ip_iter[0].ping_scan(timeout=timeout)
-        if ip_iter[0].is_up[0]:
+        ip_iter[-1].ping_scan(timeout=timeout)
+        if not ip_iter[-1].is_up[0]:
             self.host_list.append(ip_iter)
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
