@@ -192,10 +192,10 @@ class Network:
     def ping_scan(self, timeout=2) -> None:
         threads = []
         open_ports = []
-        ip_iter = self.ip
+        ip_iter = [self.ip] #must be in a list to be mutable, so that threads can interact with it.
         self.host_list = []
         for i in range(0,self.get_nb_max_host()-2):
-            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str), timeout)))
+            threads.append(threading.Thread(target=self.__ping, args=(ip_iter, timeout)))
         for t in threads:
             t.start()
         for t in threads:
@@ -205,8 +205,14 @@ class Network:
         """
         Procedure appending a host to a list if responding to ICMP probe
         """
-        ip_iter.ping_scan(timeout=timeout)
-        if ip_iter.is_up[0]:
+        mutex = Lock()
+        try:
+            mutex.acquire()
+            ip_iter[0].next()
+        finally:
+            mutex.release()
+        ip_iter[0].ping_scan(timeout=timeout)
+        if ip_iter[0].is_up[0]:
             self.host_list.append(ip_iter)
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
