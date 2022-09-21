@@ -191,24 +191,36 @@ class Network:
 
     def ping_scan(self, timeout=2) -> None:
         threads = []
-        open_ports = []
         ip_iter = self.ip
         self.host_list = []
-        for i in range(0,self.get_nb_max_host()-2):
-            #make it great again !
-            threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str), timeout)))
+        counter = [0] #nasty way preventing thread to run indefinitely
+        for i in range(0,100):
+            threads.append(threading.Thread(target=self.__ping, args=(ip_iter, counter, timeout)))
         for t in threads:
             t.start()
         for t in threads:
             t.join()
 
-    def __ping(self, ip_iter, timeout=1) -> None:
+    def __ping(self, ip_iter, counter: list, timeout=1) -> None:
         """
         Procedure appending a host to a list if responding to ICMP probe
         """
-        ip_iter.ping_scan(timeout=timeout)
-        if ip_iter.is_up[0]:
-            self.host_list.append(ip_iter)
+        while (counter[0] <= (self.get_nb_max_host() - 2)):
+            mutex = Lock()
+            try:
+                mutex.acquire()
+                current_ip = ip_iter
+                ip_iter.next()
+                counter[0] += 1
+            finally:
+                mutex.release()
+            current_ip.ping_scan(timeout=timeout)
+            logging.debug(f"SCAN COUNTER {counter}\nSCAN LIMIT {self.get_nb_max_host()-2}")
+            if current_ip.is_up[0]:
+                self.host_list.append(current_ip)
+                logging.debug(f"thread {self} scanning: {current_ip} => SUCCESS")
+            else:
+                logging.debug(f"thread {self} scanning: {current_ip} => FAILURE")
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
         threads = []
