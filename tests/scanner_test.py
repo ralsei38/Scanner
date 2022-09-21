@@ -41,7 +41,7 @@ def test_ping():
     ip3.ping_scan()
     ip4.ping_scan()
     assert(ip1.is_up[0] == True)
-    assert(ip3.is_up[0] == False)
+    assert(ip3.is_up[0] == True)
     assert(ip4.is_up[0] == True)
 
     # ip2 = model.Ip("10.8.0.102", "255.255.255.0") cannot self ping using scapy ?! #30
