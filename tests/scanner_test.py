@@ -38,12 +38,12 @@ def test_ip_init_wrong_ip_type():
 def test_ip_next():
     ip1 = model.Ip("192.168.1.0", "255.255.255.0")
     for i in range(0, 200):
-        ip.next()
-    assert(str(ip) == "192.168.1.200")
+        ip1.next()
+    assert(str(ip1) == "192.168.1.200")
 
     ip2 = model.Ip("192.168.1.0", "255.255.255.0")
-    for i in range(0, 255+1):
-        ip.next()
+    for i in range(0, 256+1):
+        ip2.next()
     assert(str(ip2) == "192.168.2.1")
 
 def test_get_nb_max_host():
