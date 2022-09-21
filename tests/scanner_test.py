@@ -41,7 +41,7 @@ def test_ip_next():
         ip.next()
     assert(str(ip) == "192.168.1.200")
 
-    ip2 = mode.Ip("192.168.1.0", "255.255.255.0")
+    ip2 = model.Ip("192.168.1.0", "255.255.255.0")
     for i in range(0, 255+1):
         ip.next()
     assert(str(ip2) == "192.168.2.1")
