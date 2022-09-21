@@ -195,6 +195,7 @@ class Network:
         ip_iter = self.ip
         self.host_list = []
         for i in range(0,self.get_nb_max_host()-2):
+            #make it great again !
             threads.append(threading.Thread(target=self.__ping, args=(Ip(ip_iter.next(), ip_iter.netmask_str), timeout)))
         for t in threads:
             t.start()
