@@ -63,11 +63,18 @@ def test_ip_ping():
     assert(ip3.is_up[0] == True)
     assert(ip4.is_up[0] == True)
 
-def test_ip_udp_csan():
-    pass  # Dedicated VM 🧪 #31
+def test_ip_udp_csan(): # will soon be tested on Dedicated VM 🧪 #31
+    ip1 = model.Ip("10.8.0.1", "255.255.255.0")
+    ip1.tcp_scan()
+    assert(len(ip1.ports) > 0)
 
-def test_tcp_scan():
-    pass  # Dedicated VM 🧪 #31
+def test_tcp_scan(): # will soon be tested on Dedicated VM 🧪 #31
+    with pytest.raises(NotImplementedError):
+        ip = model.Ip("10.8.0.1", "255.255.255.0")
+        print(ip.tcp_scan("other", 0.1))
+        print(ip.tcp_scan("kek", 0.1))
+        print(ip.tcp_scan("ful", 0.1))
+    assert(len(ip.ports) > 0)
 
 def test_network_ping_scan():
     ip = model.Ip("10.8.0.1", "255.255.255.0")
@@ -76,14 +83,13 @@ def test_network_ping_scan():
     assert(len(network.host_list) > 0)
 
 def test_network_tcp_scan():
-    ip = model.Ip("10.8.0.1", "255.255.255.0")
     with pytest.raises(NotImplementedError):
-        print(ip.tcp_scan("other", 0.1))
-        print(ip.tcp_scan("kek", 0.1))
-        print(ip.tcp_scan("ful", 0.1))
-    assert(len(ip.ports) > 0)
+        net = model.Network(model.Ip("10.8.0.1", "255.255.255.0"))
+        net.tcp_scan("other", 0.1)
+        net.tcp_scan("kek", 0.1)
+        net.tcp_scan("ful", 0.1)
 
 def test_network_udp_scan():
-    ip = model.Ip("10.8.0.1", "255.255.255.0")
-    ip.udp_scan()
-    assert(len(ip.ports) > 0)
+    with pytest.raises(NotImplementedError):
+        net = model.Network(model.Ip("10.8.0.1", "255.255.255.0"))
+        net.udp_scan()

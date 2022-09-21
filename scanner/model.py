@@ -19,6 +19,8 @@ ACTION_LIST = {
     4 : 'UDP scan',
 }
 
+SCAN_TYPES = ["full", "half"]
+
 class Ip:
     def __init__(self, ip_str: str, netmask_str: str) -> None:
         if not isinstance(ip_str, str) or not isinstance(netmask_str, str):
@@ -223,6 +225,8 @@ class Network:
                 logging.debug(f"thread {self} scanning: {current_ip} => FAILURE")
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
+        if scan_type not in SCAN_TYPES:
+            raise NotImplementedError(f"scan type {scan_type} not implemented yet tcp scan not implemented yet")
         threads = []
         self.host_list = []
         self.ping_scan()
@@ -234,7 +238,6 @@ class Network:
             t.start()
         for t in threads:
             t.join()
-
     def __tcp_scan(self, host_list, scan_type="full", timeout=1) -> None:
         while len(host_list) > 0:
             mutex = Lock()
@@ -246,7 +249,7 @@ class Network:
 
             ip.tcp_scan(scan_type)
             self.host_list.append(ip)
-    
+
     def udp_scan(self, scan_type="full", timeout=1) -> list:
             raise NotImplementedError("network tcp scan not implemented yet !")
     
