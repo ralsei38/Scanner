@@ -5,7 +5,7 @@ from time import sleep
 import logging
 from scapy.all import *
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-logging.basicConfig(level=logging.ERROR) #DEBUG
+logging.basicConfig(level=logging.ERROR) #DEBUG ERROR
 
 FOCUS_LIST = {
     1 : 'network scan',
@@ -67,10 +67,10 @@ class Ip:
         """
         pkt = IP(dst=self.ip_str)/ICMP(type=8, code=0)
         response = sr1(pkt, timeout=timeout, verbose=False)
-        if response is not None:
-            self.is_up = True, str(datetime.now()).split(' ')[-1]
+        if response is not None and response.type != 3:
+            self.is_up = (True, str(datetime.now()).split(' ')[-1])
         else:
-            self.is_up = False, str(datetime.now()).split(' ')[-1]
+            self.is_up = (False, str(datetime.now()).split(' ')[-1])
 
     
     def udp_scan(self, timeout=1) -> None:
@@ -105,8 +105,6 @@ class Ip:
                 self.is_up = True, str(datetime.now()).split(' ')[-1]
             else:
                 logging.debug(f"UDP response => FAIL {self.ip_str} port {port}")
-                # self.ports[str(port)] = 0
-                del self.ports[str(port)]
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
         """
@@ -122,7 +120,7 @@ class Ip:
             raise NotImplementedError
         
         threads = []
-        for i in range(1, 400):
+        for i in range(1, 200):
             threads.append(threading.Thread(target=self.__tcp_port_scan, args=(current_ports, scan_type, 1.5)))
         for t in threads:
             t.start()
@@ -159,7 +157,6 @@ class Ip:
                     send(pkt_conn_end, verbose=False)
                     self.is_up = True, str(datetime.now()).split(' ')[-1]
                 else:
-                    del self.ports[str(port)]
                     logging.debug(f"TCP SYN attempt => FAILED => on {self.ip_str} port {port}")
 
             elif "half" in scan_type: #TCP half-open scan
@@ -168,7 +165,6 @@ class Ip:
                     logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
                 else:
                     logging.debug(f"TCP SYN attempt => FAILD => on {self.ip_str} port {port}")
-                    del self.ports[str(port)]
             else:
                 self.ports[str(port)] = -1
                 raise NotImplementedError(f"{scan_type} is not implemented yet")
@@ -193,35 +189,39 @@ class Network:
                 n_free_bits += 1
             else:
                 break
-        return 2 ** n_free_bits - 2 # last IP broadcast, real number is 2 ** nb_free_bits - 2 
+        return 2 ** n_free_bits - 2
 
+    def host_list_init(self) -> list:
+        ip_iter = self.ip
+        host_list = [Ip(ip_iter.next(),ip_iter.netmask_str) for i in range(self.get_nb_max_host() - 2)]
+        host_list.append(self.ip)
+        return host_list
+    
     def ping_scan(self, timeout=2) -> None:
         threads = []
-        ip_iter = self.ip
         self.host_list = []
-        counter = [0] #nasty way preventing thread to run indefinitely
-        for i in range(0,100):
-            threads.append(threading.Thread(target=self.__ping, args=(ip_iter, counter, timeout)))
+        host_list = self.host_list_init()
+
+        for i in range(400):
+            threads.append(threading.Thread(target=self.__ping, args=(host_list, timeout)))
         for t in threads:
             t.start()
         for t in threads:
             t.join()
 
-    def __ping(self, ip_iter, counter: list, timeout=1) -> None:
+    def __ping(self, host_list, timeout=1) -> None:
         """
         Procedure appending a host to a list if responding to ICMP probe
         """
-        while (counter[0] <= (self.get_nb_max_host() - 2)):
+        while len(host_list) > 0:
             mutex = Lock()
             try:
                 mutex.acquire()
-                current_ip = ip_iter
-                ip_iter.next()
-                counter[0] += 1
+                current_ip = host_list.pop()
             finally:
                 mutex.release()
             current_ip.ping_scan(timeout=timeout)
-            logging.debug(f"SCAN COUNTER {counter}\nSCAN LIMIT {self.get_nb_max_host()-2}")
+
             if current_ip.is_up[0]:
                 self.host_list.append(current_ip)
                 logging.debug(f"thread {self} scanning: {current_ip} => SUCCESS")
@@ -229,20 +229,21 @@ class Network:
                 logging.debug(f"thread {self} scanning: {current_ip} => FAILURE")
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
+        
         if scan_type not in SCAN_TYPES:
             raise NotImplementedError(f"scan type {scan_type} not implemented yet tcp scan not implemented yet")
         threads = []
         self.host_list = []
         self.ping_scan()
         host_list = self.host_list.copy()
-        print(host_list)
+        
         for i in range(2):
             threads.append(threading.Thread(target=self.__tcp_scan, args=(host_list, scan_type, timeout)))
         for t in threads:
             t.start()
         for t in threads:
             t.join()
-    
+
     def __tcp_scan(self, host_list, scan_type="full", timeout=1) -> None:
         while len(host_list) > 0:
             mutex = Lock()
