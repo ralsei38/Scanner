@@ -5,7 +5,7 @@ from time import sleep
 import logging
 from scapy.all import *
 logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.ERROR) #DEBUG
 
 FOCUS_LIST = {
     1 : 'network scan',
@@ -72,6 +72,18 @@ class Ip:
         else:
             self.is_up = False, str(datetime.now()).split(' ')[-1]
 
+    
+    def udp_scan(self, timeout=1) -> None:
+        threads = list()
+        self.init_ports()
+        current_ports = self.ports.copy()
+        for i in range(1, 400):
+            threads.append(threading.Thread(target=self.__udp_port_scan, args=(current_ports, timeout)))
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
     def __udp_port_scan(self, current_ports, timeout=5) -> None:
         """
         Procedure appending a port to a list if responding to TCP probe
@@ -90,20 +102,11 @@ class Ip:
             if len(response):
                 logging.debug(f"UDP response => OK {self.ip_str} port {port}")
                 self.ports[str(port)] = 1
+                self.is_up = True, str(datetime.now()).split(' ')[-1]
             else:
                 logging.debug(f"UDP response => FAIL {self.ip_str} port {port}")
-                self.ports[str(port)] = 0
-
-    def udp_scan(self, timeout=1) -> None:
-        threads = list()
-        self.init_ports()
-        current_ports = self.ports.copy()
-        for i in range(1, 400):
-            threads.append(threading.Thread(target=self.__udp_port_scan, args=(current_ports, timeout)))
-        for t in threads:
-            t.start()
-        for t in threads:
-            t.join()
+                # self.ports[str(port)] = 0
+                del self.ports[str(port)]
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
         """
@@ -119,7 +122,7 @@ class Ip:
             raise NotImplementedError
         
         threads = []
-        for i in range(700):
+        for i in range(1, 400):
             threads.append(threading.Thread(target=self.__tcp_port_scan, args=(current_ports, scan_type, 1.5)))
         for t in threads:
             t.start()
@@ -154,8 +157,9 @@ class Ip:
                     logging.debug(f"sending TCP ACK attempt on {self.ip_str} port {port}")
                     pkt_conn_end = IP(dst=self.ip_str)/TCP(flags='RA', dport=port, seq=pkt_syn.ack, ack=pkt_syn.seq+1)
                     send(pkt_conn_end, verbose=False)
+                    self.is_up = True, str(datetime.now()).split(' ')[-1]
                 else:
-                    self.ports[str(port)] = 0
+                    del self.ports[str(port)]
                     logging.debug(f"TCP SYN attempt => FAILED => on {self.ip_str} port {port}")
 
             elif "half" in scan_type: #TCP half-open scan
@@ -164,7 +168,7 @@ class Ip:
                     logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
                 else:
                     logging.debug(f"TCP SYN attempt => FAILD => on {self.ip_str} port {port}")
-                    self.ports[str(port)] = 0
+                    del self.ports[str(port)]
             else:
                 self.ports[str(port)] = -1
                 raise NotImplementedError(f"{scan_type} is not implemented yet")
@@ -238,6 +242,7 @@ class Network:
             t.start()
         for t in threads:
             t.join()
+    
     def __tcp_scan(self, host_list, scan_type="full", timeout=1) -> None:
         while len(host_list) > 0:
             mutex = Lock()
@@ -250,7 +255,10 @@ class Network:
             ip.tcp_scan(scan_type)
             self.host_list.append(ip)
 
-    def udp_scan(self, scan_type="full", timeout=1) -> list:
+    def udp_scan(self, timeout=1) -> None:
+            threads = []
+            self.host_list = []
+            host_list = []
             raise NotImplementedError("network tcp scan not implemented yet !")
     
     def __str__(self) -> str:

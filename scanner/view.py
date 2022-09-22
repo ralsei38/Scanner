@@ -32,6 +32,7 @@ class View():
         return (ip_str, netmask_str)
     
     def summary(self, entity) -> None:
+        print('-'*6)
         if isinstance(entity, Network):
             print(f"address: {entity}")
             print(f"hosts: {[str(host) for host in entity.host_list]}")
@@ -43,5 +44,6 @@ class View():
             print(f"address: {entity}")
             print(f"is up: {entity.is_up[0]}")
             print(f"scan timestamp: {entity.is_up[1]}")
+            print(f"open ports: {entity.ports}")
         else:
             raise TypeError
