@@ -202,7 +202,7 @@ class Network:
         self.host_list = []
         host_list = self.host_list_init()
 
-        for i in range(400):
+        for i in range(200):
             threads.append(threading.Thread(target=self.__ping, args=(host_list, timeout)))
         for t in threads:
             t.start()
