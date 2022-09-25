@@ -23,8 +23,8 @@ SCAN_TYPES = ["full", "half"]
 
 class Ip:
     def __init__(self, ip_str: str, netmask_str: str) -> None:
-        self.ip_str = ip_str
-        self.netmask_str = netmask_str
+        self._ip_str = ip_str
+        self._netmask_str = netmask_str
         self.ports = {
             # key : value <=> port_number : state
             # state {=> -1, 0, 1
@@ -32,14 +32,22 @@ class Ip:
         self.init_ports()
         self.is_up = (False, str(datetime.now()).split(' ')[-1])
     
+    @property
+    def ip_str(self):
+        return self._ip_str
+
+    @property
+    def netmask_str(self):
+        return self._netmask_str
+
     @ip_str.setter
-    def set_ip_netmask(self, ip_str):
+    def ip_str(self, ip_str):
         if not isinstance(ip_str, str):
             raise TypeError
         sell.ip_str = ip_str
   
     @netmask_str.setter
-    def set_netmask(self, netmask_str):
+    def netmask_str(self, netmask_str):
         if not isinstance(netmask_str, str):
             raise TypeError
         sell.netmask_str = netmask_str
