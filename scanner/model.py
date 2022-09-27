@@ -44,13 +44,13 @@ class Ip:
     def ip_str(self, ip_str):
         if not isinstance(ip_str, str):
             raise TypeError
-        sell.ip_str = ip_str
+        self.ip_str = ip_str
   
     @netmask_str.setter
     def netmask_str(self, netmask_str):
         if not isinstance(netmask_str, str):
             raise TypeError
-        sell.netmask_str = netmask_str
+        self.netmask_str = netmask_str
 
     def init_ports(self) -> None:
         for port in range(0, 1025):
@@ -89,9 +89,9 @@ class Ip:
 
     
     def udp_scan(self, timeout=1) -> None:
-        threads = list()
-        self.init_ports()
-        current_ports = self.ports.copy()
+        threads = []
+        self.ports = []
+        current_ports = [i for i in range(0, 1025)]
         for i in range(1, 400):
             threads.append(threading.Thread(target=self.__udp_port_scan, args=(current_ports, timeout)))
         for t in threads:
@@ -108,33 +108,31 @@ class Ip:
             mutex = Lock()
             try:
                 mutex.acquire()
-                port, _ = current_ports.popitem()
-                port = int(port)
+                port = current_ports.pop()
             finally:
                 mutex.release()
             pkt = IP(dst=self.ip_str)/UDP(dport=port)
             response, _ = sr(pkt, timeout=timeout, verbose=False)
             if len(response):
                 logging.debug(f"UDP response => OK {self.ip_str} port {port}")
-                self.ports[str(port)] = 1
+                self.ports.append(port)
                 self.is_up = True, str(datetime.now()).split(' ')[-1]
             else:
                 logging.debug(f"UDP response => FAIL {self.ip_str} port {port}")
 
     def tcp_scan(self, scan_type="full", timeout=1) -> None:
-        """
+        f"""
         TCP FULL SCAN : returns list of open-ports
         This method calls the "__tcp_port_scan" method
-        implemented scan types are:
-        - full
+        implemented scan types are: {SCAN_TYPES}
         """
-        scan_type_list = ["full", "half"]
-        self.init_ports()
-        current_ports = self.ports.copy()
-        if scan_type not in scan_type_list:
+        
+        if scan_type not in SCAN_TYPES:
             raise NotImplementedError
         
         threads = []
+        self.ports = []
+        current_ports = [i for i in range(0, 1025)]
         for i in range(1, 200):
             threads.append(threading.Thread(target=self.__tcp_port_scan, args=(current_ports, scan_type, 1.5)))
         for t in threads:
@@ -154,8 +152,7 @@ class Ip:
             mutex.acquire()
             port = ""
             try:
-                port, _ = current_ports.popitem()
-                port = int(port)
+                port = current_ports.pop()
             finally:
                 mutex.release()
             #scanning it
@@ -165,7 +162,7 @@ class Ip:
             #Excuse the mess...
             if "full" in scan_type: #TCP full scan
                 if len(pkt_conn_start):
-                    self.ports[str(port)] = 1
+                    self.ports.append(port)
                     logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
                     logging.debug(f"sending TCP ACK attempt on {self.ip_str} port {port}")
                     pkt_conn_end = IP(dst=self.ip_str)/TCP(flags='RA', dport=port, seq=pkt_syn.ack, ack=pkt_syn.seq+1)
@@ -176,12 +173,12 @@ class Ip:
 
             elif "half" in scan_type: #TCP half-open scan
                 if len(pkt_conn_start):
-                    self.ports[str(port)] = 1
+                    self.ports.append(port)
                     logging.debug(f"TCP SYN attempt => SUCESSFULL => on {self.ip_str} port {port}")
                 else:
                     logging.debug(f"TCP SYN attempt => FAILD => on {self.ip_str} port {port}")
             else:
-                self.ports[str(port)] = -1
+                self.ports.append(port)
                 raise NotImplementedError(f"{scan_type} is not implemented yet")
     def __str__(self) -> str:
         return self.ip_str
@@ -276,6 +273,20 @@ class Network:
             self.host_list = []
             host_list = []
             raise NotImplementedError("network tcp scan not implemented yet !")
+    
+    def arp_scan(self):
+        raise NotImplementedError
+
+    def dhcp_spoofing(self, stealth: bool):
+        """
+        a simple dhcp spoofing method,
+        exthausion makes dhcp way more efficient.
+        """
+        if stealth:
+            dhco
+        if dhcp_server is not None:
+            pass
+        pass
     
     def __str__(self) -> str:
         return str(self.ip)

@@ -47,6 +47,6 @@ class View():
             print(f"address: {entity}")
             print(f"is up: {entity.is_up[0]}")
             print(f"scan timestamp: {entity.is_up[1]}")
-            print(f"open ports: {[k for k in entity.ports if entity.ports[k] != -1]}")
+            print(f"open ports: {entity.ports}")
         else:
             raise TypeError
